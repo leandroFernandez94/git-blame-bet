@@ -1,0 +1,12 @@
+export const MAX_PLAYERS = 10;
+export const ROUNDS_COUNT = 20;
+export const ROUND_TIME_MS = 15_000;
+export const ROUND_PAUSE_MS = 3_000;
+export const GAME_TTL_MS = 3_600_000;
+export const RECONNECT_GRACE_MS = 60_000;
+export const ADMIN_DISCONNECT_TIMEOUT_MS = 30_000;
+export const INITIAL_HANDSHAKE_MS = 10_000;
+export const MIN_CONTRIBUTORS = 3;
+export const MIN_COMMITS = 50;
+export const SNIPPET_MIN_LINES = 4;
+export const SNIPPET_MAX_LINES = 25;

@@ -1,16 +1,7 @@
 import type { ServerWebSocket } from "bun";
 import type { ClientMessage, ServerMessage } from "@git-blame-bet/shared";
 import { INITIAL_HANDSHAKE_MS } from "@git-blame-bet/shared";
-import {
-  handleCreateGame,
-  handleJoinGame,
-  handleLeaveGame,
-  handleStartLoading,
-  handleStartGame,
-  handleSubmitAnswer,
-  setBroadcast,
-  setSendToPlayer,
-} from "../game/engine";
+import { createEngine } from "../game/engine";
 import { getGame } from "../game/state";
 import { generateQRDataUrl } from "../utils/qr";
 
@@ -45,7 +36,7 @@ function broadcastToGame(gameId: string, msg: ServerMessage): void {
   }
 }
 
-function sendToPlayer(
+function sendToPlayerSocket(
   gameId: string,
   nickname: string,
   msg: ServerMessage,
@@ -56,8 +47,10 @@ function sendToPlayer(
   }
 }
 
-setBroadcast(broadcastToGame);
-setSendToPlayer(sendToPlayer);
+const engine = createEngine({
+  broadcast: broadcastToGame,
+  sendToPlayer: sendToPlayerSocket,
+});
 
 export function handleOpen(ws: ServerWebSocket<WSData>): void {
   const timer = setTimeout(() => {
@@ -71,7 +64,7 @@ export function handleClose(ws: ServerWebSocket<WSData>): void {
   const { gameId, nickname } = ws.data;
   if (gameId && nickname) {
     playerSockets.delete(socketKey(gameId, nickname));
-    handleLeaveGame(gameId, nickname);
+    engine.handleLeaveGame(gameId, nickname);
   }
 }
 
@@ -94,7 +87,7 @@ export async function handleMessage(
     case "lobby:create": {
       const { repoUrl, nickname } = msg.payload;
       try {
-        const gameId = handleCreateGame(repoUrl, nickname);
+        const gameId = engine.handleCreateGame(repoUrl, nickname);
         ws.data.gameId = gameId;
         ws.data.nickname = nickname;
         if (ws.data.handshakeTimer) clearTimeout(ws.data.handshakeTimer);
@@ -136,7 +129,7 @@ export async function handleMessage(
       if (ws.data.handshakeTimer) clearTimeout(ws.data.handshakeTimer);
       playerSockets.set(socketKey(gameId, nickname), ws);
 
-      const result = handleJoinGame(gameId, nickname);
+      const result = engine.handleJoinGame(gameId, nickname);
       if (!result.ok) {
         playerSockets.delete(socketKey(gameId, nickname));
         send(ws, {
@@ -164,9 +157,9 @@ export async function handleMessage(
       }
 
       if (game.phase === "lobby") {
-        await handleStartLoading(gameId);
+        await engine.handleStartLoading(gameId);
       } else if (game.phase === "ready") {
-        handleStartGame(gameId);
+        engine.handleStartGame(gameId);
       }
       break;
     }
@@ -174,7 +167,7 @@ export async function handleMessage(
     case "round:answer": {
       const { gameId, nickname } = ws.data;
       if (!gameId || !nickname) return;
-      handleSubmitAnswer(gameId, nickname, msg.payload.contributorLogin);
+      engine.handleSubmitAnswer(gameId, nickname, msg.payload.contributorLogin);
       break;
     }
   }

@@ -134,6 +134,7 @@ export function advanceRound(gameId: string): Round | null {
 
   const round = game.rounds[game.currentRoundIndex];
   round.startedAt = Date.now();
+  round.completedAt = null;
   round.answers = new Map();
   game.lastActivityAt = Date.now();
   return round;
@@ -148,7 +149,7 @@ export function submitAnswer(
   if (!game || game.phase !== GamePhase.Playing) return false;
 
   const round = game.rounds[game.currentRoundIndex];
-  if (!round || round.answers.has(nickname)) return false;
+  if (!round || round.completedAt || round.answers.has(nickname)) return false;
 
   round.answers.set(nickname, contributorLogin);
   return true;
@@ -162,6 +163,10 @@ export function calculateRoundScores(
 
   const round = game.rounds[game.currentRoundIndex];
   if (!round) return [];
+
+  // Guard: only score a round once
+  if (round.completedAt) return [];
+  round.completedAt = Date.now();
 
   const results: { nickname: string; correct: boolean }[] = [];
 

@@ -31,7 +31,11 @@ function broadcastToGame(gameId: string, msg: ServerMessage): void {
   for (const nickname of game.players.keys()) {
     const ws = playerSockets.get(socketKey(gameId, nickname));
     if (ws?.readyState === 1) {
-      ws.send(data);
+      try {
+        ws.send(data);
+      } catch (err) {
+        console.error(`[ws] Failed to send to ${nickname}:`, err);
+      }
     }
   }
 }

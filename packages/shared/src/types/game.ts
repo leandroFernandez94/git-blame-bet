@@ -33,6 +33,7 @@ export type Round = {
   options: Contributor[];
   answers: Map<string, string>;
   startedAt: number | null;
+  completedAt: number | null;
   timeLimit: number;
 };
 

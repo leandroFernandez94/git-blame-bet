@@ -36,6 +36,8 @@ export interface EngineDeps {
 
 export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
   const roundTimers = new Map<string, { timeout: Timer; interval: Timer }>();
+  const feedbackTimers = new Map<string, Timer>();
+  const roundEnded = new Set<string>();
 
   function handleCreateGame(repoUrl: string, nickname: string): string {
     const room = createGame({ repoUrl }, nickname);
@@ -138,11 +140,16 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
   }
 
   function startNextRound(gameId: string): void {
+    roundEnded.delete(gameId);
+
     const round = advanceRound(gameId);
     if (!round) {
+      console.log(`[engine] No more rounds for game ${gameId}, ending game`);
       endGame(gameId);
       return;
     }
+
+    console.log(`[engine] Starting round ${round.index} (game ${gameId})`);
 
     broadcast(gameId, {
       type: "round:start",
@@ -178,6 +185,25 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
     const game = getGame(gameId);
     if (!game) return;
 
+    if (game.phase !== GamePhase.Playing) {
+      console.warn(`[engine] endRound called but phase is ${game.phase}, ignoring`);
+      return;
+    }
+
+    // Prevent double-ending the same round (timer + last answer race)
+    if (roundEnded.has(gameId)) {
+      console.warn(`[engine] endRound already called for game ${gameId} round ${game.currentRoundIndex}, ignoring`);
+      return;
+    }
+    roundEnded.add(gameId);
+
+    // Clear any existing feedback timer
+    const existingFeedback = feedbackTimers.get(gameId);
+    if (existingFeedback) {
+      clearTimeout(existingFeedback);
+      feedbackTimers.delete(gameId);
+    }
+
     const results = calculateRoundScores(gameId);
     const round = game.rounds[game.currentRoundIndex];
 
@@ -194,6 +220,8 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
       };
     });
 
+    console.log(`[engine] Round ${round.index} ended (game ${gameId}), scheduling next in ${ROUND_PAUSE_MS}ms`);
+
     broadcast(gameId, {
       type: "round:result",
       payload: {
@@ -203,17 +231,31 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
       },
     });
 
-    setTimeout(() => {
-      startNextRound(gameId);
+    const feedbackTimer = setTimeout(() => {
+      feedbackTimers.delete(gameId);
+      try {
+        startNextRound(gameId);
+      } catch (err) {
+        console.error(`[engine] Error in startNextRound after feedback:`, err);
+      }
     }, ROUND_PAUSE_MS);
+    feedbackTimers.set(gameId, feedbackTimer);
   }
 
   function endGame(gameId: string): void {
+    roundEnded.delete(gameId);
+
     const timers = roundTimers.get(gameId);
     if (timers) {
       clearTimeout(timers.timeout);
       clearInterval(timers.interval);
       roundTimers.delete(gameId);
+    }
+
+    const feedback = feedbackTimers.get(gameId);
+    if (feedback) {
+      clearTimeout(feedback);
+      feedbackTimers.delete(gameId);
     }
 
     transitionTo(gameId, GamePhase.Results);
@@ -231,6 +273,9 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
     nickname: string,
     contributorLogin: string,
   ): void {
+    // Reject answers during feedback phase
+    if (roundEnded.has(gameId)) return;
+
     const success = submitAnswer(gameId, nickname, contributorLogin);
     if (!success) return;
 
@@ -241,6 +286,8 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
     const allAnswered = [...game.players.keys()].every(
       (n) => round.answers.has(n) || !game.players.get(n)?.connected,
     );
+
+    console.log(`[engine] Answer from ${nickname} (game ${gameId}, round ${game.currentRoundIndex}). All answered: ${allAnswered} (${round.answers.size}/${game.players.size})`);
 
     if (allAnswered) {
       const timers = roundTimers.get(gameId);

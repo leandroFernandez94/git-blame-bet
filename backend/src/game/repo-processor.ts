@@ -97,6 +97,7 @@ export async function processRepo(
       options,
       answers: new Map(),
       startedAt: null,
+      completedAt: null,
       timeLimit: ROUND_TIME_MS,
     };
   });

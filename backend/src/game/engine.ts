@@ -19,7 +19,7 @@ import {
   deleteGame,
   setPlayerConnected,
 } from "./state";
-import { processRepo } from "./repo-processor";
+import { processRepo } from "../repo/processor";
 import { detectProvider } from "../providers";
 import { scheduleGameCleanup } from "../utils/cleanup";
 

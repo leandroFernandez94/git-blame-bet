@@ -24,6 +24,9 @@ async function ghFetch<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/**
+ * @deprecated Use `GitHubProvider.parseUrl()` from `providers/github.ts` instead.
+ */
 export function parseRepoUrl(url: string): { owner: string; repo: string } {
   const match = url.match(
     /github\.com[/:]([^/]+)\/([^/.]+?)(?:\.git)?(?:\/.*)?$/,
@@ -32,6 +35,9 @@ export function parseRepoUrl(url: string): { owner: string; repo: string } {
   return { owner: match[1], repo: match[2] };
 }
 
+/**
+ * @deprecated Use `GitHubProvider.validateRepo()` from `providers/github.ts` instead.
+ */
 export async function validateRepo(
   owner: string,
   repo: string,
@@ -59,6 +65,9 @@ export async function validateRepo(
   };
 }
 
+/**
+ * @deprecated Use `GitHubProvider.getContributors()` from `providers/github.ts` instead.
+ */
 export async function getContributors(
   owner: string,
   repo: string,
@@ -74,6 +83,9 @@ export async function getContributors(
   }));
 }
 
+/**
+ * @deprecated Unused in game flow. No replacement planned.
+ */
 export async function getRepoTree(
   owner: string,
   repo: string,

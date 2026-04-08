@@ -2,7 +2,8 @@ import type { Contributor, Round } from "@git-blame-bet/shared";
 import { ROUNDS_COUNT, ROUND_TIME_MS, MIN_CONTRIBUTORS } from "@git-blame-bet/shared";
 import { detectProvider } from "../providers";
 import type { GitProvider } from "../providers/types";
-import { cloneRepo } from "../github/client";
+import { cloneRepo } from "./clone";
+import { getCacheKey, isCached } from "./repo-cache";
 import { extractSnippets } from "./snippet-extractor";
 import { buildEmailMap } from "../utils/git-blame";
 import { scheduleTempCleanup } from "../utils/cleanup";
@@ -51,8 +52,9 @@ export async function processRepo(
   }
 
   onProgress?.("Cloning repository...", 0.3);
+  const cacheKey = getCacheKey(ref);
   const cloneUrl = resolvedProvider.getCloneUrl(ref);
-  const repoPath = await cloneRepo(cloneUrl);
+  const repoPath = await cloneRepo(cloneUrl, cacheKey);
 
   onProgress?.("Building email map...", 0.4);
   const emailMapStart = performance.now();
@@ -65,7 +67,9 @@ export async function processRepo(
   console.log(`[repo] Snippet extraction total: ${snippets.length} snippets in ${((performance.now() - extractStart) / 1000).toFixed(1)}s`);
 
   if (snippets.length < 5) {
-    scheduleTempCleanup(repoPath);
+    if (!isCached(cacheKey)) {
+      scheduleTempCleanup(repoPath);
+    }
     throw new Error(
       "Not enough TypeScript code snippets found. Try a different repository or filter.",
     );
@@ -105,7 +109,9 @@ export async function processRepo(
   onProgress?.("Ready!", 1.0);
   console.log(`[repo] Pipeline complete: ${rounds.length} rounds built in ${((performance.now() - totalStart) / 1000).toFixed(1)}s total`);
 
-  scheduleTempCleanup(repoPath, 300_000);
+  if (!isCached(cacheKey)) {
+    scheduleTempCleanup(repoPath, 300_000);
+  }
 
   return { rounds, contributors, repoPath };
 }

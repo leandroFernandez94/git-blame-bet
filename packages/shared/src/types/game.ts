@@ -20,7 +20,6 @@ export type GameConfig = {
   repoUrl: string;
   pathFilter?: string;
   fileTypes?: string[];
-  githubToken?: string;
 };
 
 export type Round = {

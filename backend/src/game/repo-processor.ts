@@ -1,11 +1,8 @@
 import type { Contributor, Round } from "@git-blame-bet/shared";
 import { ROUNDS_COUNT, ROUND_TIME_MS, MIN_CONTRIBUTORS } from "@git-blame-bet/shared";
-import {
-  parseRepoUrl,
-  validateRepo,
-  getContributors,
-  cloneRepo,
-} from "../github/client";
+import { detectProvider } from "../providers";
+import type { GitProvider } from "../providers/types";
+import { cloneRepo } from "../github/client";
 import { extractSnippets } from "./snippet-extractor";
 import { buildEmailMap } from "../utils/git-blame";
 import { scheduleTempCleanup } from "../utils/cleanup";
@@ -30,19 +27,21 @@ export async function processRepo(
   repoUrl: string,
   pathFilter?: string,
   onProgress?: (step: string, progress: number) => void,
+  provider?: GitProvider,
 ): Promise<RepoProcessResult> {
   const totalStart = performance.now();
-  const { owner, repo } = parseRepoUrl(repoUrl);
-  console.log(`[repo] Processing ${owner}/${repo}${pathFilter ? ` (filter: "${pathFilter}")` : ""}`);
+  const resolvedProvider = provider ?? detectProvider(repoUrl);
+  const ref = resolvedProvider.parseUrl(repoUrl);
+  console.log(`[repo] Processing via ${resolvedProvider.name}: ${repoUrl}${pathFilter ? ` (filter: "${pathFilter}")` : ""}`);
 
   onProgress?.("Validating repository...", 0.1);
   const valStart = performance.now();
-  await validateRepo(owner, repo);
+  await resolvedProvider.validateRepo(ref);
   console.log(`[repo] Validated in ${((performance.now() - valStart) / 1000).toFixed(1)}s`);
 
   onProgress?.("Fetching contributors...", 0.2);
   const contribStart = performance.now();
-  const contributors = await getContributors(owner, repo);
+  const contributors = await resolvedProvider.getContributors(ref);
   console.log(`[repo] Got ${contributors.length} contributors in ${((performance.now() - contribStart) / 1000).toFixed(1)}s`);
 
   if (contributors.length < MIN_CONTRIBUTORS) {
@@ -52,11 +51,12 @@ export async function processRepo(
   }
 
   onProgress?.("Cloning repository...", 0.3);
-  const repoPath = await cloneRepo(repoUrl);
+  const cloneUrl = resolvedProvider.getCloneUrl(ref);
+  const repoPath = await cloneRepo(cloneUrl);
 
   onProgress?.("Building email map...", 0.4);
   const emailMapStart = performance.now();
-  const emailMap = await buildEmailMap(repoPath, contributors);
+  const emailMap = await buildEmailMap(repoPath, contributors, resolvedProvider);
   console.log(`[repo] Email map built in ${((performance.now() - emailMapStart) / 1000).toFixed(1)}s`);
 
   onProgress?.("Extracting code snippets...", 0.5);
@@ -78,7 +78,7 @@ export async function processRepo(
       (c) => c.login === snippet.blame.login,
     ) ?? {
       login: snippet.blame.login,
-      avatarUrl: `https://github.com/${snippet.blame.login}.png`,
+      avatarUrl: resolvedProvider.getAvatarUrl(snippet.blame.login),
       commitsCount: 0,
     };
 

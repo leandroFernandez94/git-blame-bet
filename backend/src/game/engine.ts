@@ -20,6 +20,7 @@ import {
   setPlayerConnected,
 } from "./state";
 import { processRepo } from "./repo-processor";
+import { detectProvider } from "../providers";
 import { scheduleGameCleanup } from "../utils/cleanup";
 
 type BroadcastFn = (gameId: string, message: ServerMessage) => void;
@@ -104,6 +105,7 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
     });
 
     try {
+      const provider = detectProvider(game.config.repoUrl);
       const { rounds } = await processRepo(
         game.config.repoUrl,
         game.config.pathFilter,
@@ -113,6 +115,7 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
             payload: { step, progress },
           });
         },
+        provider,
       );
 
       setRounds(gameId, rounds);

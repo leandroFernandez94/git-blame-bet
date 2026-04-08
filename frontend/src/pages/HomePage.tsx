@@ -74,7 +74,7 @@ export function HomePage() {
         </div>
         <div>
           <label className="mb-1 block text-sm text-gray-400">
-            GitHub repository URL
+            Repository URL
           </label>
           <input
             type="text"

@@ -3,7 +3,7 @@ import type { Player, PlayerScore, LeaderboardEntry } from "./game";
 
 export type LobbyCreateMessage = {
   type: "lobby:create";
-  payload: { repoUrl: string; nickname: string; githubToken?: string };
+  payload: { repoUrl: string; nickname: string };
 };
 
 export type LobbyJoinMessage = {

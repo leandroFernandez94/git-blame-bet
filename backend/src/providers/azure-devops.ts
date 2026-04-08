@@ -3,7 +3,7 @@ import type { EmailMap } from "../utils/git-blame";
 import type { GitProvider, AzureDevOpsRepoRef } from "./types";
 
 const ADO_COMMIT_PAGINATION_CAP = parseInt(
-  process.env.ADO_COMMIT_PAGINATION_CAP ?? "200",
+  process.env.ADO_COMMIT_PAGINATION_CAP ?? "1000",
   10,
 );
 
@@ -131,11 +131,12 @@ export class AzureDevOpsProvider
         if (!author?.name) continue;
 
         const displayName = author.name;
-        const existing = authorMap.get(displayName);
+        const key = displayName.toLowerCase();
+        const existing = authorMap.get(key);
         if (existing) {
           existing.count++;
         } else {
-          authorMap.set(displayName, {
+          authorMap.set(key, {
             displayName,
             avatarUrl: author.imageUrl ?? "",
             count: 1,
@@ -188,14 +189,18 @@ export class AzureDevOpsProvider
   }
 
   async buildEmailMapEntries(
-    _contributors: Contributor[],
+    contributors: Contributor[],
     _repoPath: string,
   ): Promise<EmailMap> {
     const map: EmailMap = new Map();
 
-    for (const [displayName, emails] of this.contributorEmails) {
+    for (const contributor of contributors) {
+      const emails = this.contributorEmails.get(
+        contributor.login.toLowerCase(),
+      );
+      if (!emails) continue;
       for (const email of emails) {
-        map.set(email, displayName);
+        map.set(email, contributor.login);
       }
     }
 

@@ -77,64 +77,14 @@ export async function buildEmailMap(
       }
     }
 
-    // 4. Rank-based unmatched fallback — match unmatched contributors
-    //    to unmatched email groups by commit count rank
-    const gitLogEmails = new Set(emailCommitCounts.keys());
-    const reallyMatchedLogins = new Set<string>();
-    for (const [email, login] of map) {
-      if (gitLogEmails.has(email)) reallyMatchedLogins.add(login);
-    }
-    const unmatchedContributors = contributors
-      .filter((c) => !reallyMatchedLogins.has(c.login))
-      .sort((a, b) => b.commitsCount - a.commitsCount);
-
-    if (unmatchedContributors.length > 0) {
-      const unmatchedEmails = [...emailCommitCounts.entries()]
-        .filter(([email]) => !map.has(email))
-        .sort((a, b) => b[1] - a[1]);
-
-      const emailToName = new Map<string, string>();
-      for (const { email, name } of emailNamePairs) {
-        if (!emailToName.has(email)) emailToName.set(email, name);
-      }
-
-      const nameGroupCounts = new Map<
-        string,
-        { count: number; emails: string[] }
-      >();
-      for (const [email, count] of unmatchedEmails) {
-        const name = emailToName.get(email) ?? email;
-        const nameLower = name.toLowerCase();
-        const existing = nameGroupCounts.get(nameLower);
-        if (existing) {
-          existing.count += count;
-          existing.emails.push(email);
-        } else {
-          nameGroupCounts.set(nameLower, { count, emails: [email] });
-        }
-      }
-
-      const rankedUnmatchedAuthors = [...nameGroupCounts.entries()].sort(
-        (a, b) => b[1].count - a[1].count,
+    // Log unmatched emails for observability
+    const unmatchedEmails = [...emailCommitCounts.entries()].filter(
+      ([email]) => !map.has(email),
+    );
+    for (const [email, count] of unmatchedEmails) {
+      console.log(
+        `[blame-map] Unmatched email: ${email} (${count} commits)`,
       );
-
-      const matchCount = Math.min(
-        unmatchedContributors.length,
-        rankedUnmatchedAuthors.length,
-      );
-      for (let i = 0; i < matchCount; i++) {
-        const contributor = unmatchedContributors[i];
-        const [authorName, { emails, count }] = rankedUnmatchedAuthors[i];
-
-        if (count < 5) break;
-
-        for (const email of emails) {
-          map.set(email, contributor.login);
-        }
-        console.log(
-          `[blame-map] Rank-matched "${authorName}" (${count} commits, ${emails.length} emails) -> ${contributor.login} (${contributor.commitsCount} API commits)`,
-        );
-      }
     }
   } catch (e) {
     console.log(

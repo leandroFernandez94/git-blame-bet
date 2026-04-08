@@ -1,4 +1,3 @@
-import { $ } from "bun";
 import type { Contributor, RepoInfo } from "@git-blame-bet/shared";
 import type { EmailMap } from "../utils/git-blame";
 import type { GitProvider, AzureDevOpsRepoRef } from "./types";
@@ -39,6 +38,7 @@ export class AzureDevOpsProvider
   implements GitProvider<AzureDevOpsRepoRef>
 {
   readonly name = "Azure DevOps";
+  private contributorEmails: Map<string, Set<string>> = new Map();
 
   canHandle(url: string): boolean {
     return /dev\.azure\.com/.test(url) || /\.visualstudio\.com/.test(url);
@@ -96,6 +96,7 @@ export class AzureDevOpsProvider
   }
 
   async getContributors(ref: AzureDevOpsRepoRef): Promise<Contributor[]> {
+    this.contributorEmails.clear();
     const authorMap = new Map<
       string,
       { displayName: string; avatarUrl: string; count: number }
@@ -140,6 +141,15 @@ export class AzureDevOpsProvider
             count: 1,
           });
         }
+
+        if (author.email) {
+          const key = displayName.toLowerCase();
+          const emailLower = author.email.toLowerCase();
+          if (!this.contributorEmails.has(key)) {
+            this.contributorEmails.set(key, new Set());
+          }
+          this.contributorEmails.get(key)!.add(emailLower);
+        }
       }
 
       totalFetched += commits.length;
@@ -178,58 +188,15 @@ export class AzureDevOpsProvider
   }
 
   async buildEmailMapEntries(
-    contributors: Contributor[],
-    repoPath: string,
+    _contributors: Contributor[],
+    _repoPath: string,
   ): Promise<EmailMap> {
     const map: EmailMap = new Map();
 
-    try {
-      const result =
-        await $`git -C ${repoPath} log --format=%ae%n%an --all`.quiet();
-      const lines = result.stdout.toString().trim().split("\n");
-
-      const emailNamePairs: { email: string; name: string }[] = [];
-      for (let i = 0; i < lines.length - 1; i += 2) {
-        emailNamePairs.push({
-          email: lines[i].trim().toLowerCase(),
-          name: lines[i + 1].trim(),
-        });
+    for (const [displayName, emails] of this.contributorEmails) {
+      for (const email of emails) {
+        map.set(email, displayName);
       }
-
-      const contributorLogins = contributors.map((c) =>
-        c.login.toLowerCase(),
-      );
-
-      for (const { email, name } of emailNamePairs) {
-        if (map.has(email)) continue;
-
-        // Exact name matching against contributor displayNames
-        const nameLower = name.toLowerCase();
-        if (contributorLogins.includes(nameLower)) {
-          const contributor = contributors.find(
-            (c) => c.login.toLowerCase() === nameLower,
-          );
-          if (contributor) {
-            map.set(email, contributor.login);
-            continue;
-          }
-        }
-
-        // Email prefix matching against contributor displayNames
-        const prefix = email.split("@")[0].toLowerCase();
-        if (contributorLogins.includes(prefix)) {
-          const contributor = contributors.find(
-            (c) => c.login.toLowerCase() === prefix,
-          );
-          if (contributor) {
-            map.set(email, contributor.login);
-          }
-        }
-      }
-    } catch (e) {
-      console.log(
-        `[ado-provider] git log failed for email map: ${e instanceof Error ? e.message : String(e)}`,
-      );
     }
 
     return map;

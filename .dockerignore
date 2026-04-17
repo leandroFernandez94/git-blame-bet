@@ -1,0 +1,33 @@
+# Dependencies (installed fresh in container)
+node_modules/
+
+# Version control
+.git/
+
+# SDD / Agent artifacts
+.atl/
+
+# Test output
+test-results/
+
+# OpenSpec artifacts
+openspec/
+
+# Frontend build output (rebuilt in container)
+frontend/dist/
+
+# Environment files (injected via Coolify / runtime)
+.env*
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# OS artifacts
+.DS_Store
+
+# Temporary files
+tmp/
+
+# TypeScript build info (regenerated)
+*.tsbuildinfo

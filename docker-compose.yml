@@ -1,0 +1,17 @@
+# Docker Compose for local development testing
+# Usage: docker compose up --build
+# Access: http://localhost:3000
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - PUBLIC_URL=http://localhost:3000
+      # Uncomment to pass GitHub token for private repos:
+      # - GITHUB_TOKEN=${GITHUB_TOKEN}
+    restart: unless-stopped

@@ -79,3 +79,6 @@ git-blame-bet/
 ├── package.json        # Bun workspaces root
 └── tsconfig.base.json  # Shared TypeScript config
 ```
+
+
+<!-- Fix #12 -->

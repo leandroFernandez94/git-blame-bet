@@ -1,5 +1,6 @@
 export { GamePhase } from "./types/game";
 export { SnippetType } from "./types/snippet";
+export { isAzureDevOpsUrl } from "./providers/azure-devops-url";
 export {
   MAX_PLAYERS,
   ROUNDS_COUNT,

@@ -6,9 +6,17 @@ import { getOrClone, sanitizeKey } from "./repo-cache";
 const CLONE_TIMEOUT_MS = 120_000;
 const CACHE_ROOT = join(tmpdir(), "gbb-cache");
 
+/**
+ * Strip embedded PATs from clone URLs before logging or error reporting.
+ * Matches patterns like `https://{PAT}@dev.azure.com/...`
+ */
+export function sanitizeCloneUrl(url: string): string {
+  return url.replace(/https:\/\/[^@]+@/g, "https://***@");
+}
+
 function cloneInto(repoUrl: string, dir: string): Promise<string> {
   const start = performance.now();
-  console.log(`[clone] Starting full clone of ${repoUrl} into ${dir}`);
+  console.log(`[clone] Starting full clone of ${sanitizeCloneUrl(repoUrl)} into ${dir}`);
 
   const proc = Bun.spawn(
     ["git", "clone", "--single-branch", repoUrl, dir],
@@ -22,11 +30,12 @@ function cloneInto(repoUrl: string, dir: string): Promise<string> {
 
     if (exitCode !== 0) {
       return new Response(proc.stderr).text().then((stderr) => {
-        console.log(`[clone] FAILED (exit ${exitCode}) after ${((performance.now() - start) / 1000).toFixed(1)}s: ${stderr.slice(0, 200)}`);
+        const safeStderr = sanitizeCloneUrl(stderr.slice(0, 200));
+        console.log(`[clone] FAILED (exit ${exitCode}) after ${((performance.now() - start) / 1000).toFixed(1)}s: ${safeStderr}`);
         throw new Error(
           exitCode === null || exitCode === 137
             ? "Repository clone timed out (2 min limit). Try a smaller repo."
-            : `Git clone failed: ${stderr.slice(0, 200)}`,
+            : `Git clone failed: ${safeStderr}`,
         );
       });
     }

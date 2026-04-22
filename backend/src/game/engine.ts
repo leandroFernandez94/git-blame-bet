@@ -20,7 +20,7 @@ import {
   setPlayerConnected,
 } from "./state";
 import { processRepo } from "../repo/processor";
-import { detectProvider } from "../providers";
+import { createProvider } from "../providers";
 import { scheduleGameCleanup } from "../utils/cleanup";
 
 type BroadcastFn = (gameId: string, message: ServerMessage) => void;
@@ -40,8 +40,8 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
   const feedbackTimers = new Map<string, Timer>();
   const roundEnded = new Set<string>();
 
-  function handleCreateGame(repoUrl: string, nickname: string): string {
-    const room = createGame({ repoUrl }, nickname);
+  function handleCreateGame(repoUrl: string, nickname: string, azureDevOpsToken?: string): string {
+    const room = createGame({ repoUrl, azureDevOpsToken }, nickname);
     scheduleGameCleanup(room.id, () => deleteGame(room.id));
     return room.id;
   }
@@ -105,7 +105,7 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
     });
 
     try {
-      const provider = detectProvider(game.config.repoUrl);
+      const provider = createProvider(game.config.repoUrl, game.config.azureDevOpsToken);
       const { rounds } = await processRepo(
         game.config.repoUrl,
         game.config.pathFilter,

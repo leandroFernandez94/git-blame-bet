@@ -1,4 +1,7 @@
+import { isAzureDevOpsUrl } from "@git-blame-bet/shared";
 import type { GitProvider, ProviderRepoRef } from "./types";
+import { GitHubProvider } from "./github";
+import { AzureDevOpsProvider } from "./azure-devops";
 
 type GitProviderInstance = GitProvider<ProviderRepoRef>;
 
@@ -10,10 +13,17 @@ export function registerProvider(provider: GitProviderInstance): void {
 
 export function detectProvider(url: string): GitProviderInstance {
   const provider = providers.find((p) => p.canHandle(url));
-  if (!provider) {
-    throw new Error(
-      "Unsupported repository URL. Supported providers: GitHub, Azure DevOps.",
-    );
+  if (provider) return provider;
+
+  return createProvider(url);
+}
+
+export function createProvider(
+  repoUrl: string,
+  azureDevOpsToken?: string,
+): GitProviderInstance {
+  if (isAzureDevOpsUrl(repoUrl)) {
+    return new AzureDevOpsProvider(azureDevOpsToken);
   }
-  return provider;
+  return new GitHubProvider();
 }

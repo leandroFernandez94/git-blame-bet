@@ -1,4 +1,4 @@
-import type { Contributor, RepoInfo } from "@git-blame-bet/shared";
+import { isAzureDevOpsUrl, type Contributor, type RepoInfo } from "@git-blame-bet/shared";
 import type { EmailMap } from "../utils/git-blame";
 import type { GitProvider, AzureDevOpsRepoRef } from "./types";
 
@@ -7,41 +7,46 @@ const ADO_COMMIT_PAGINATION_CAP = parseInt(
   10,
 );
 
-function getPat(): string | null {
-  return process.env.AZURE_DEVOPS_TOKEN ?? null;
-}
-
-function adoHeaders(): Record<string, string> {
-  const pat = getPat();
-  if (!pat) {
-    throw new Error(
-      "Azure DevOps authentication required. Set AZURE_DEVOPS_TOKEN env var.",
-    );
-  }
-  return {
-    Authorization: `Basic ${btoa(":" + pat)}`,
-    "Content-Type": "application/json",
-  };
-}
-
-async function adoFetch<T>(url: string): Promise<T> {
-  const headers = adoHeaders();
-  const res = await fetch(url, { headers });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Azure DevOps API ${res.status}: ${body}`);
-  }
-  return res.json() as Promise<T>;
-}
-
 export class AzureDevOpsProvider
   implements GitProvider<AzureDevOpsRepoRef>
 {
   readonly name = "Azure DevOps";
   private contributorEmails: Map<string, Set<string>> = new Map();
+  private userToken?: string;
+
+  constructor(token?: string) {
+    this.userToken = token;
+  }
+
+  private getPat(): string | null {
+    return this.userToken ?? process.env.AZURE_DEVOPS_TOKEN ?? null;
+  }
+
+  private adoHeaders(): Record<string, string> {
+    const pat = this.getPat();
+    if (!pat) {
+      throw new Error(
+        "Azure DevOps authentication required. Provide a PAT or set AZURE_DEVOPS_TOKEN env var.",
+      );
+    }
+    return {
+      Authorization: `Basic ${btoa(":" + pat)}`,
+      "Content-Type": "application/json",
+    };
+  }
+
+  private async adoFetch<T>(url: string): Promise<T> {
+    const headers = this.adoHeaders();
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Azure DevOps API ${res.status}: ${body}`);
+    }
+    return res.json() as Promise<T>;
+  }
 
   canHandle(url: string): boolean {
-    return /dev\.azure\.com/.test(url) || /\.visualstudio\.com/.test(url);
+    return isAzureDevOpsUrl(url);
   }
 
   parseUrl(url: string): AzureDevOpsRepoRef {
@@ -76,7 +81,7 @@ export class AzureDevOpsProvider
 
   async validateRepo(ref: AzureDevOpsRepoRef): Promise<RepoInfo> {
     const url = `https://dev.azure.com/${ref.org}/${ref.project}/_apis/git/repositories/${ref.repo}?api-version=7.1`;
-    const data = await adoFetch<{
+    const data = await this.adoFetch<{
       name: string;
       webUrl: string;
       defaultBranch: string;
@@ -112,7 +117,7 @@ export class AzureDevOpsProvider
 
       const url = `https://dev.azure.com/${ref.org}/${ref.project}/_apis/git/repositories/${ref.repo}/commits?api-version=7.1&$top=${batchSize}&$skip=${skip}&includeUserImageUrl=true`;
 
-      const data = await adoFetch<{
+      const data = await this.adoFetch<{
         value: {
           author?: {
             name?: string;
@@ -175,7 +180,7 @@ export class AzureDevOpsProvider
   }
 
   getCloneUrl(ref: AzureDevOpsRepoRef): string {
-    const pat = getPat();
+    const pat = this.getPat();
     if (pat) {
       return `https://${pat}@dev.azure.com/${ref.org}/${ref.project}/_git/${ref.repo}`;
     }

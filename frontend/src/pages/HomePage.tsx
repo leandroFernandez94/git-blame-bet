@@ -1,20 +1,26 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { isAzureDevOpsUrl } from "@git-blame-bet/shared";
 import { useGame } from "../context/GameContext";
 
 export function HomePage() {
   const [repoUrl, setRepoUrl] = useState("");
   const [nickname, setNickname] = useState("");
+  const [azureDevOpsToken, setAzureDevOpsToken] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const isAzure = isAzureDevOpsUrl(repoUrl);
   const { connect, sendMessage, state, dispatch, connectionStatus } = useGame();
   const navigate = useNavigate();
-  const pendingCreate = useRef<{ repoUrl: string; nickname: string } | null>(
-    null,
-  );
+  const pendingCreate = useRef<{
+    repoUrl: string;
+    nickname: string;
+    azureDevOpsToken?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (connectionStatus === "connected" && pendingCreate.current) {
-      const { repoUrl: repo, nickname: nick } = pendingCreate.current;
+      const { repoUrl: repo, nickname: nick, azureDevOpsToken: token } =
+        pendingCreate.current;
       pendingCreate.current = null;
       dispatch({
         type: "SET_IDENTITY",
@@ -23,7 +29,11 @@ export function HomePage() {
       });
       sendMessage({
         type: "lobby:create",
-        payload: { repoUrl: repo, nickname: nick },
+        payload: {
+          repoUrl: repo,
+          nickname: nick,
+          ...(token ? { azureDevOpsToken: token } : {}),
+        },
       });
     }
     if (connectionStatus === "disconnected" && isCreating) {
@@ -37,12 +47,19 @@ export function HomePage() {
     }
   }, [state.gameId, navigate]);
 
+  useEffect(() => {
+    if (!isAzure && azureDevOpsToken) {
+      setAzureDevOpsToken("");
+    }
+  }, [isAzure, azureDevOpsToken]);
+
   const handleCreate = () => {
     if (!repoUrl.trim() || !nickname.trim()) return;
     setIsCreating(true);
     pendingCreate.current = {
       repoUrl: repoUrl.trim(),
       nickname: nickname.trim(),
+      azureDevOpsToken: azureDevOpsToken.trim() || undefined,
     };
     connect();
   };
@@ -84,6 +101,25 @@ export function HomePage() {
             className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none"
           />
         </div>
+        {isAzure && (
+          <div>
+            <label className="mb-1 block text-sm text-gray-400">
+              Azure DevOps PAT
+              <span className="ml-1 text-gray-500">(optional)</span>
+            </label>
+            <input
+              type="password"
+              value={azureDevOpsToken}
+              onChange={(e) => setAzureDevOpsToken(e.target.value)}
+              placeholder="Personal Access Token"
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Required for private repos. If not provided, the server&apos;s
+              configured token will be used.
+            </p>
+          </div>
+        )}
         <button
           onClick={handleCreate}
           disabled={!repoUrl.trim() || !nickname.trim() || isCreating}

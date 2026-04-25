@@ -18,6 +18,7 @@ export type Player = {
 
 export type GameConfig = {
   repoUrl: string;
+  azureDevOpsToken?: string;
   pathFilter?: string;
   fileTypes?: string[];
 };

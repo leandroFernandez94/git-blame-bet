@@ -42,6 +42,9 @@
     "packages/shared": {
       "name": "@git-blame-bet/shared",
       "version": "0.0.1",
+      "devDependencies": {
+        "vitest": "^4.1.3",
+      },
     },
   },
   "packages": {

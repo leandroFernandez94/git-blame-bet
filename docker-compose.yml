@@ -1,14 +1,19 @@
 # Docker Compose for local development testing
 # Usage: docker compose up --build
 # Access: http://localhost:3000
+#
+# NOTE: We use `expose` instead of `ports` so Coolify/Traefik can route
+# multiple containers (main + preview deployments) by domain/subdomain
+# without host port conflicts. Each container listens on 3000 internally,
+# and Traefik handles routing via its Docker network.
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       - PORT=3000
       - PUBLIC_URL=http://localhost:3000

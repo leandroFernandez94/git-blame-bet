@@ -14,14 +14,14 @@ flowchart TD
     VPS["🖥️ VPS"]
     TRAEFIK["🔀 Traefik Reverse Proxy<br/>(managed by Coolify)"]
 
-    USER -->|"blamebet.tudominio.com"| CF
-    USER -->|"pr14-blamebet.tudominio.com"| CF
+    USER -->|"code-guesser.com"| CF
+    USER -->|"pr14.code-guesser.com"| CF
     CF -->|"Tunnel"| TUNNEL
     TUNNEL -->|"HTTP (no TLS)"| VPS
     VPS --> TRAEFIK
 
-    TRAEFIK -->|"blamebet.tudominio.com"| MAIN["🐳 Container: main<br/>:3000 (internal)"]
-    TRAEFIK -->|"pr14-blamebet.tudominio.com"| PR14["🐳 Container: preview-pr14<br/>:3000 (internal)"]
+    TRAEFIK -->|"code-guesser.com"| MAIN["🐳 Container: main<br/>:3000 (internal)"]
+    TRAEFIK -->|"pr14.code-guesser.com"| PR14["🐳 Container: preview-pr14<br/>:3000 (internal)"]
 
     style MAIN fill:#2ea043,color:#fff
     style PR14 fill:#1f6feb,color:#fff
@@ -35,8 +35,8 @@ flowchart TD
 2. The Cloudflare Tunnel handles **HTTPS termination** — traffic reaches the VPS as plain HTTP.
 3. **Traefik** (automatically managed by Coolify) receives all incoming traffic and routes it by **domain/hostname** to the correct Docker container.
 4. Each container listens on **port 3000 internally**. Since there is no host port binding, multiple containers coexist without conflicts.
-5. **Main deployment**: `blamebet.tudominio.com` → the production container.
-6. **Preview deployments**: `prN-blamebet.tudominio.com` → a container built from a specific PR branch.
+5. **Main deployment**: `code-guesser.com` → the production container.
+6. **Preview deployments**: `prN.code-guesser.com` → a container built from a specific PR branch.
 
 ### Key insight
 
@@ -44,7 +44,36 @@ flowchart TD
 
 ---
 
-## 2. Docker Networking
+## 2. Cloudflare Tunnel Configuration (Crucial)
+
+When placing a Cloudflare Tunnel in front of Coolify's reverse proxy (Traefik/Caddy), you may encounter **502 Bad Gateway** or **404 Not Found** errors if the tunnel is not configured correctly. 
+
+### Fixing 502 Bad Gateway (TLS Verification)
+If you route traffic through the tunnel to `https://<server-ip>:443`, Cloudflare will attempt to verify the SSL certificate presented by Coolify's proxy. Since Coolify might use self-signed certificates internally or the certificate doesn't match the direct IP address, Cloudflare rejects the connection for security reasons.
+
+**To fix this:**
+1. Go to your Tunnel configuration in Cloudflare Zero Trust.
+2. Under **Public Hostname**, edit your domain routing.
+3. Expand **Additional application settings** -> **TLS**.
+4. Enable **No TLS Verify**.
+
+> **Is "No TLS Verify" secure?** Yes. The traffic from the user to Cloudflare is encrypted (SSL), and the traffic from Cloudflare to your server's `cloudflared` daemon is also encrypted (Argo Tunnel). The "No TLS Verify" option only disables checking the certificate in the *last internal hop* (between `cloudflared` and Traefik on the same server) because Traefik uses a self-signed certificate locally. Since this hop happens entirely within the server's internal network, it is safe.
+
+### Fixing 404 Not Found (Host Routing)
+If the connection succeeds but you see a 404 error, it means the request reached Traefik, but the proxy doesn't know which container should handle it. The proxy relies on the `Host` header.
+Ensure that the domain set in your Coolify application's **Domains** field EXACTLY matches the public hostname configured in your Cloudflare Tunnel.
+
+### Handling PR Previews (Wildcard Subdomains)
+To support automatic PR previews (e.g., `pr14.code-guesser.com`), you need to configure both Cloudflare and Coolify:
+1. In Cloudflare DNS, add a `CNAME` record for `*` pointing to your tunnel.
+2. In Cloudflare Zero Trust (Tunnel), add a Public Hostname for `*.code-guesser.com` pointing to your server's HTTPS port.
+3. In Coolify, set the PR deployment FQDN pattern to `https://pr${PR_ID}.code-guesser.com`.
+
+*Note: Cloudflare's free Universal SSL only covers one level of subdomains (`*.code-guesser.com`). Using a dedicated domain for the app ensures PR previews stay at the third level and don't trigger SSL privacy errors.*
+
+---
+
+## 3. Docker Networking
 
 ```mermaid
 flowchart LR
@@ -62,9 +91,9 @@ flowchart LR
     TRAEFIK --- C2
     TRAEFIK --- C3
 
-    TRAEFIK -->|"blamebet.tudominio.com"| C1
-    TRAEFIK -->|"pr14-blamebet.tudominio.com"| C2
-    TRAEFIK -->|"pr27-blamebet.tudominio.com"| C3
+    TRAEFIK -->|"code-guesser.com"| C1
+    TRAEFIK -->|"pr14.code-guesser.com"| C2
+    TRAEFIK -->|"pr27.code-guesser.com"| C3
 
     style NET fill:#1a1a2e,color:#ccc,stroke:#444
     style C1 fill:#2ea043,color:#fff
@@ -84,7 +113,7 @@ When we use `expose: "3000"`, the port is only accessible within the Docker netw
 
 ---
 
-## 3. Preview Deployment Flow
+## 4. Preview Deployment Flow
 
 ```mermaid
 sequenceDiagram
@@ -100,19 +129,19 @@ sequenceDiagram
     COOL->>DOCKER: Build image from PR branch
     DOCKER-->>COOL: Image ready
     COOL->>DOCKER: Create container (expose: 3000)
-    COOL->>TRAEFIK: Add route: pr14-blamebet.tudominio.com → container-pr14
+    COOL->>TRAEFIK: Add route: pr14.code-guesser.com → container-pr14
     TRAEFIK-->>COOL: Route configured
 
     Note over DEV,DOCKER: Preview is now live!
 
-    DEV->>TRAEFIK: GET pr14-blamebet.tudominio.com
+    DEV->>TRAEFIK: GET pr14.code-guesser.com
     TRAEFIK->>DOCKER: Route to container-pr14:3000
     DOCKER-->>DEV: Response
 
     DEV->>GH: Merge / Close PR #14
     GH->>COOL: Webhook trigger (closed)
     COOL->>DOCKER: Stop & remove container-pr14
-    COOL->>TRAEFIK: Remove route for pr14-blamebet.tudominio.com
+    COOL->>TRAEFIK: Remove route for pr14.code-guesser.com
     TRAEFIK-->>COOL: Route removed
 
     Note over DEV,DOCKER: Preview teardown complete
@@ -124,7 +153,7 @@ sequenceDiagram
 2. **GitHub** sends a webhook to **Coolify**.
 3. **Coolify** detects this is a PR event and creates a **preview deployment**.
 4. **Docker** builds a new image from the PR branch and starts a container with `expose: 3000`.
-5. **Traefik** automatically gets a new route: `prN-blamebet.tudominio.com` → the new container.
+5. **Traefik** automatically gets a new route: `prN.code-guesser.com` → the new container.
 6. The preview is accessible at the subdomain — **no manual configuration needed**.
 7. When the PR is **merged or closed**, Coolify tears down the container and Traefik removes the route.
 
@@ -137,7 +166,7 @@ Preview containers are ephemeral. Coolify automatically handles:
 
 ---
 
-## 4. Port Binding vs Expose — The Problem and the Fix
+## 5. Port Binding vs Expose — The Problem and the Fix
 
 ### Before: `ports: "3000:3000"` (broken for previews)
 

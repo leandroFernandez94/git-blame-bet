@@ -89,9 +89,9 @@ export async function handleMessage(
 
   switch (msg.type) {
     case "lobby:create": {
-      const { repoUrl, nickname } = msg.payload;
+      const { repoUrl, nickname, azureDevOpsToken } = msg.payload;
       try {
-        const gameId = engine.handleCreateGame(repoUrl, nickname);
+        const gameId = engine.handleCreateGame(repoUrl, nickname, azureDevOpsToken);
         ws.data.gameId = gameId;
         ws.data.nickname = nickname;
         if (ws.data.handshakeTimer) clearTimeout(ws.data.handshakeTimer);

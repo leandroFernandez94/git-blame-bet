@@ -1,6 +1,6 @@
 import type { Contributor, Round } from "@git-blame-bet/shared";
 import { ROUNDS_COUNT, ROUND_TIME_MS, MIN_CONTRIBUTORS } from "@git-blame-bet/shared";
-import { detectProvider } from "../providers";
+import { createProvider } from "../providers";
 import type { GitProvider } from "../providers/types";
 import { cloneRepo } from "./clone";
 import { getCacheKey, isCached } from "./repo-cache";
@@ -31,7 +31,7 @@ export async function processRepo(
   provider?: GitProvider,
 ): Promise<RepoProcessResult> {
   const totalStart = performance.now();
-  const resolvedProvider = provider ?? detectProvider(repoUrl);
+  const resolvedProvider = provider ?? createProvider(repoUrl);
   const ref = resolvedProvider.parseUrl(repoUrl);
   console.log(`[repo] Processing via ${resolvedProvider.name}: ${repoUrl}${pathFilter ? ` (filter: "${pathFilter}")` : ""}`);
 

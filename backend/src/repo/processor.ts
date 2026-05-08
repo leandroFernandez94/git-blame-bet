@@ -15,11 +15,11 @@ export type RepoProcessResult = {
 };
 
 function pickDistractors(
-  correctLogin: string,
+  correctDisplayName: string,
   allContributors: Contributor[],
   count: number,
 ): Contributor[] {
-  const others = allContributors.filter((c) => c.login !== correctLogin);
+  const others = allContributors.filter((c) => c.displayName !== correctDisplayName);
   const shuffled = others.sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }
@@ -79,14 +79,14 @@ export async function processRepo(
 
   const rounds: Round[] = snippets.map((snippet, i) => {
     const correctContributor = contributors.find(
-      (c) => c.login === snippet.blame.login,
+      (c) => c.displayName === snippet.blame.displayName,
     ) ?? {
-      login: snippet.blame.login,
-      avatarUrl: resolvedProvider.getAvatarUrl(snippet.blame.login),
+      displayName: snippet.blame.displayName,
+      avatarUrl: resolvedProvider.getAvatarUrl(snippet.blame.displayName),
       commitsCount: 0,
     };
 
-    const distractors = pickDistractors(snippet.blame.login, contributors, 2);
+    const distractors = pickDistractors(snippet.blame.displayName, contributors, 2);
     const options = [correctContributor, ...distractors].sort(
       () => Math.random() - 0.5,
     );
@@ -97,7 +97,7 @@ export async function processRepo(
       language: snippet.language,
       filePath: snippet.filePath,
       startLine: snippet.startLine,
-      correctLogin: snippet.blame.login,
+      correctLogin: snippet.blame.displayName,
       options,
       answers: new Map(),
       startedAt: null,

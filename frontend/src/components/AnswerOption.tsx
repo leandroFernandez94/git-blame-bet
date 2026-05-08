@@ -27,10 +27,10 @@ export function AnswerOption({
     >
       <img
         src={contributor.avatarUrl}
-        alt={contributor.login}
+        alt={contributor.displayName}
         className="h-12 w-12 rounded-full"
       />
-      <span className="text-lg font-medium">{contributor.login}</span>
+      <span className="text-lg font-medium">{contributor.displayName}</span>
       {state === "correct" && (
         <span className="ml-auto text-2xl text-green-400">✓</span>
       )}

@@ -45,7 +45,7 @@ type GameState = {
 type GameAction =
   | { type: "SET_IDENTITY"; gameId?: string; nickname: string; isAdmin: boolean }
   | { type: "PROCESS_MESSAGE"; message: ServerMessage }
-  | { type: "SELECT_ANSWER"; login: string }
+  | { type: "SELECT_ANSWER"; displayName: string }
   | { type: "CLEAR_ERROR" }
   | { type: "RESET" };
 
@@ -140,7 +140,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "SELECT_ANSWER":
-      return { ...state, selectedAnswer: action.login };
+      return { ...state, selectedAnswer: action.displayName };
 
     case "CLEAR_ERROR":
       return { ...state, error: null };

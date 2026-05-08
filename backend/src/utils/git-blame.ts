@@ -3,7 +3,7 @@ import type { Contributor } from "@git-blame-bet/shared";
 import type { GitProvider } from "../providers/types";
 
 export type BlameResult = {
-  login: string | null;
+  displayName: string | null;
   authorName: string;
   authorEmail: string;
   commitSha: string;
@@ -133,16 +133,16 @@ function matchContributorLogin(
 
   // 2. Generic name matching fallback
   const nameMatch = contributors.find(
-    (c) => c.login.toLowerCase() === authorName.toLowerCase(),
+    (c) => c.displayName.toLowerCase() === authorName.toLowerCase(),
   );
-  if (nameMatch) return nameMatch.login;
+  if (nameMatch) return nameMatch.displayName;
 
   // 3. Generic email prefix matching fallback
   const emailPrefix = authorEmail.split("@")[0].toLowerCase();
   const prefixMatch = contributors.find(
-    (c) => c.login.toLowerCase() === emailPrefix,
+    (c) => c.displayName.toLowerCase() === emailPrefix,
   );
-  if (prefixMatch) return prefixMatch.login;
+  if (prefixMatch) return prefixMatch.displayName;
 
   return null;
 }
@@ -171,7 +171,7 @@ function parseBlameOutput(
 
   if (!authorName || !commitSha) return null;
 
-  const login = matchContributorLogin(
+  const displayName = matchContributorLogin(
     authorName,
     authorEmail,
     contributors,
@@ -179,7 +179,7 @@ function parseBlameOutput(
   );
 
   return {
-    login,
+    displayName,
     authorName,
     authorEmail,
     commitSha,

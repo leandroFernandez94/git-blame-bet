@@ -65,23 +65,28 @@ export function PlayingPage() {
   const { currentRound, roundResult, selectedAnswer } = state;
   const showResult = roundResult !== null;
 
-  const getOptionState = (login: string) => {
+  const localTimedOut = roundResult?.scores.some(
+    (s) => s.nickname === state.nickname && s.timedOut > 0,
+  ) ?? false;
+
+  const getOptionState = (displayName: string) => {
     if (!showResult) {
-      return selectedAnswer === login ? "selected" : "default";
+      return selectedAnswer === displayName ? "selected" : "default";
     }
-    if (login === roundResult.correctLogin) return "correct";
-    if (selectedAnswer === login) return "wrong";
+    if (displayName === roundResult.correctLogin) return "correct";
+    if (localTimedOut) return "wrong";
+    if (selectedAnswer === displayName) return "wrong";
     return "default";
   };
 
   const isCorrect = showResult && selectedAnswer === roundResult.correctLogin;
 
-  const handleAnswer = (login: string) => {
+  const handleAnswer = (displayName: string) => {
     if (selectedAnswer || showResult) return;
-    dispatch({ type: "SELECT_ANSWER", login });
+    dispatch({ type: "SELECT_ANSWER", displayName });
     sendMessage({
       type: "round:answer",
-      payload: { contributorLogin: login },
+      payload: { contributorLogin: displayName },
     });
   };
 
@@ -107,10 +112,10 @@ export function PlayingPage() {
         </p>
         {currentRound.options.map((opt) => (
           <AnswerOption
-            key={opt.login}
+            key={opt.displayName}
             contributor={opt}
-            state={getOptionState(opt.login) as "default" | "selected" | "correct" | "wrong"}
-            onClick={() => handleAnswer(opt.login)}
+            state={getOptionState(opt.displayName) as "default" | "selected" | "correct" | "wrong"}
+            onClick={() => handleAnswer(opt.displayName)}
           />
         ))}
       </div>
@@ -120,12 +125,14 @@ export function PlayingPage() {
           className={`rounded-lg border-2 p-4 text-center animate-fade-in ${
             isCorrect
               ? "border-green-500 bg-green-500/10 text-green-400"
+              : localTimedOut
+              ? "border-orange-500 bg-orange-500/10 text-orange-400"
               : "border-red-500 bg-red-500/10 text-red-400"
           }`}
         >
-          <span className="text-3xl">{isCorrect ? "✓" : "✗"}</span>
+          <span className="text-3xl">{isCorrect ? "✓" : localTimedOut ? "⏱" : "✗"}</span>
           <p className="mt-1 text-lg font-bold">
-            {isCorrect ? "Correct!" : "Wrong!"}
+            {isCorrect ? "Correct!" : localTimedOut ? "Time's up!" : "Wrong!"}
           </p>
         </div>
       )}

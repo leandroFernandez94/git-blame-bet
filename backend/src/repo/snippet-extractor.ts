@@ -154,14 +154,14 @@ export async function extractSnippets(
       emailMap,
     );
 
-    if (!blame || !blame.login) {
+    if (!blame || !blame.displayName) {
       blameSkipped++;
       if (blame?.authorEmail) unmatchedEmails.add(blame.authorEmail);
       continue;
     }
 
     const blameInfo: BlameInfo = {
-      login: blame.login,
+      displayName: blame.displayName,
       name: blame.authorName,
       email: blame.authorEmail,
       date: Date.now(),

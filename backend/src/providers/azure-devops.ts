@@ -173,7 +173,7 @@ export class AzureDevOpsProvider
     return [...authorMap.values()]
       .sort((a, b) => b.count - a.count)
       .map((a) => ({
-        login: a.displayName,
+        displayName: a.displayName,
         avatarUrl: a.avatarUrl,
         commitsCount: a.count,
       }));
@@ -201,11 +201,11 @@ export class AzureDevOpsProvider
 
     for (const contributor of contributors) {
       const emails = this.contributorEmails.get(
-        contributor.login.toLowerCase(),
+        contributor.displayName.toLowerCase(),
       );
       if (!emails) continue;
       for (const email of emails) {
-        map.set(email, contributor.login);
+        map.set(email, contributor.displayName);
       }
     }
 

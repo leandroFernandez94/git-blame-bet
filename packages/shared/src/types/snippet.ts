@@ -7,7 +7,7 @@ export enum SnippetType {
 }
 
 export type BlameInfo = {
-  login: string;
+  displayName: string;
   name: string;
   email: string;
   date: number;

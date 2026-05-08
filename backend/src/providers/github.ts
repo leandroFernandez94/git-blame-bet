@@ -69,7 +69,7 @@ export class GitHubProvider implements GitProvider<GitHubRepoRef> {
     >(`/repos/${ref.owner}/${ref.repo}/contributors?per_page=100`);
 
     return data.map((c) => ({
-      login: c.login,
+      displayName: c.login,
       avatarUrl: c.avatar_url,
       commitsCount: c.contributions,
     }));
@@ -91,7 +91,7 @@ export class GitHubProvider implements GitProvider<GitHubRepoRef> {
 
     // Direct noreply mapping for each contributor
     for (const c of contributors) {
-      map.set(`${c.login}@users.noreply.github.com`.toLowerCase(), c.login);
+      map.set(`${c.displayName}@users.noreply.github.com`.toLowerCase(), c.displayName);
     }
 
     try {
@@ -108,7 +108,7 @@ export class GitHubProvider implements GitProvider<GitHubRepoRef> {
       }
 
       for (const c of contributors) {
-        const loginLower = c.login.toLowerCase();
+        const displayNameLower = c.displayName.toLowerCase();
 
         for (const { email, name } of emailNamePairs) {
           if (map.has(email)) continue;
@@ -117,30 +117,30 @@ export class GitHubProvider implements GitProvider<GitHubRepoRef> {
           const noreplyMatch = email.match(
             /^\d+\+([^@]+)@users\.noreply\.github\.com$/,
           );
-          if (noreplyMatch && noreplyMatch[1].toLowerCase() === loginLower) {
-            map.set(email, c.login);
+          if (noreplyMatch && noreplyMatch[1].toLowerCase() === displayNameLower) {
+            map.set(email, c.displayName);
             continue;
           }
 
           // Noreply prefix matching
           if (email.endsWith("@users.noreply.github.com")) {
             const prefix = email.split("@")[0].toLowerCase();
-            if (prefix === loginLower || prefix.endsWith(`+${loginLower}`)) {
-              map.set(email, c.login);
+            if (prefix === displayNameLower || prefix.endsWith(`+${displayNameLower}`)) {
+              map.set(email, c.displayName);
               continue;
             }
           }
 
           // Email prefix matching
           const prefix = email.split("@")[0].toLowerCase();
-          if (prefix === loginLower) {
-            map.set(email, c.login);
+          if (prefix === displayNameLower) {
+            map.set(email, c.displayName);
             continue;
           }
 
           // Name matching
-          if (name.toLowerCase() === loginLower) {
-            map.set(email, c.login);
+          if (name.toLowerCase() === displayNameLower) {
+            map.set(email, c.displayName);
           }
         }
       }

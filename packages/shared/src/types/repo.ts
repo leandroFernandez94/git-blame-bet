@@ -1,5 +1,5 @@
 export type Contributor = {
-  login: string;
+  displayName: string;
   avatarUrl: string;
   commitsCount: number;
 };

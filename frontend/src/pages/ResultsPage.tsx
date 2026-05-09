@@ -32,6 +32,7 @@ export function ResultsPage() {
                 {player.score}
               </span>
               <div
+                data-testid={idx === 0 ? "results-podium-first" : undefined}
                 className={`${heights[idx]} w-20 rounded-t-lg ${
                   idx === 0
                     ? "bg-yellow-500/30"

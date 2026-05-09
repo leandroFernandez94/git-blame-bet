@@ -44,6 +44,7 @@ export function PlayingPage() {
         <p className="text-gray-400">Waiting for admin to start...</p>
         {state.isAdmin && (
           <button
+            data-testid="playing-start-game"
             onClick={() => sendMessage({ type: "game:start" })}
             className="rounded-lg bg-green-600 px-8 py-3 text-lg font-bold text-white hover:bg-green-700 transition-colors"
           >
@@ -122,6 +123,7 @@ export function PlayingPage() {
 
       {showResult && (
         <div
+          data-testid="playing-round-feedback"
           className={`rounded-lg border-2 p-4 text-center animate-fade-in ${
             isCorrect
               ? "border-green-500 bg-green-500/10 text-green-400"

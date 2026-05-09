@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { isAzureDevOpsUrl } from "@git-blame-bet/shared";
+import { isAzureDevOpsUrl, type MockFixtureId } from "@git-blame-bet/shared";
 import { useGame } from "../context/GameContext";
 
 export function HomePage() {
@@ -15,12 +15,17 @@ export function HomePage() {
     repoUrl: string;
     nickname: string;
     azureDevOpsToken?: string;
+    fixtureId?: MockFixtureId;
   } | null>(null);
 
   useEffect(() => {
     if (connectionStatus === "connected" && pendingCreate.current) {
-      const { repoUrl: repo, nickname: nick, azureDevOpsToken: token } =
-        pendingCreate.current;
+      const {
+        repoUrl: repo,
+        nickname: nick,
+        azureDevOpsToken: token,
+        fixtureId,
+      } = pendingCreate.current;
       pendingCreate.current = null;
       dispatch({
         type: "SET_IDENTITY",
@@ -33,6 +38,7 @@ export function HomePage() {
           repoUrl: repo,
           nickname: nick,
           ...(token ? { azureDevOpsToken: token } : {}),
+          ...(fixtureId ? { fixtureId } : {}),
         },
       });
     }
@@ -55,11 +61,19 @@ export function HomePage() {
 
   const handleCreate = () => {
     if (!repoUrl.trim() || !nickname.trim()) return;
+
+    const queryFixture = new URLSearchParams(window.location.search).get(
+      "fixture",
+    );
+    const fixtureId: MockFixtureId | undefined =
+      queryFixture === "standard-repo" ? "standard-repo" : undefined;
+
     setIsCreating(true);
     pendingCreate.current = {
       repoUrl: repoUrl.trim(),
       nickname: nickname.trim(),
       azureDevOpsToken: azureDevOpsToken.trim() || undefined,
+      fixtureId,
     };
     connect();
   };
@@ -81,6 +95,7 @@ export function HomePage() {
             Your nickname
           </label>
           <input
+            data-testid="home-nickname-input"
             type="text"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
@@ -94,6 +109,7 @@ export function HomePage() {
             Repository URL
           </label>
           <input
+            data-testid="home-repo-url-input"
             type="text"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
@@ -108,6 +124,7 @@ export function HomePage() {
               <span className="ml-1 text-gray-500">(optional)</span>
             </label>
             <input
+              data-testid="home-azure-token-input"
               type="password"
               value={azureDevOpsToken}
               onChange={(e) => setAzureDevOpsToken(e.target.value)}
@@ -121,6 +138,7 @@ export function HomePage() {
           </div>
         )}
         <button
+          data-testid="home-create-game"
           onClick={handleCreate}
           disabled={!repoUrl.trim() || !nickname.trim() || isCreating}
           className="w-full rounded-lg bg-brand-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"

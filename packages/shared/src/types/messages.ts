@@ -1,9 +1,16 @@
 import type { Contributor } from "./repo";
 import type { Player, PlayerScore, LeaderboardEntry } from "./game";
 
+export type MockFixtureId = "standard-repo";
+
 export type LobbyCreateMessage = {
   type: "lobby:create";
-  payload: { repoUrl: string; nickname: string; azureDevOpsToken?: string };
+  payload: {
+    repoUrl: string;
+    nickname: string;
+    azureDevOpsToken?: string;
+    fixtureId?: MockFixtureId;
+  };
 };
 
 export type LobbyJoinMessage = {

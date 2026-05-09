@@ -7,6 +7,8 @@ import { getCacheKey, isCached } from "./repo-cache";
 import { extractSnippets } from "./snippet-extractor";
 import { buildEmailMap } from "../utils/git-blame";
 import { scheduleTempCleanup } from "../utils/cleanup";
+import { getStandardRepoContributors, getStandardRepoRounds } from "../e2e/fixtures/standard-repo";
+import type { MockFixtureId } from "@git-blame-bet/shared";
 
 export type RepoProcessResult = {
   rounds: Round[];
@@ -29,7 +31,19 @@ export async function processRepo(
   pathFilter?: string,
   onProgress?: (step: string, progress: number) => void,
   provider?: GitProvider,
+  fixtureId?: MockFixtureId,
 ): Promise<RepoProcessResult> {
+  if (fixtureId === "standard-repo") {
+    onProgress?.("Loading deterministic fixture...", 0.7);
+    onProgress?.("Ready!", 1.0);
+
+    return {
+      rounds: getStandardRepoRounds(),
+      contributors: getStandardRepoContributors(),
+      repoPath: "fixture://standard-repo",
+    };
+  }
+
   const totalStart = performance.now();
   const resolvedProvider = provider ?? createProvider(repoUrl);
   const ref = resolvedProvider.parseUrl(repoUrl);

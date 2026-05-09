@@ -7,3 +7,5 @@ tmp/
 .DS_Store
 .atl/
 test-results/
+e2e/.tmp/
+e2e/.features-gen/

@@ -1,0 +1,17 @@
+change: e2e-tests-from-issues
+status: archived
+archived_at: 2026-05-09
+archive_path: openspec/changes/archive/2026-05-09-e2e-tests-from-issues/
+baseline_issue: 20
+verify_verdict: PASS WITH WARNINGS
+warnings_accepted_as_non_blocking: true
+follow_ups:
+  - issue: 21
+    title: join-existing-game + lobby propagation
+    required: true
+  - issue: 22
+    title: round synchronization + answer gating
+    required: true
+  - issue: null
+    title: optional isolation-hardening E2E assertion
+    required: false

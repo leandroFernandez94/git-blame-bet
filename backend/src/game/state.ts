@@ -7,6 +7,7 @@ import {
   type Round,
 } from "@git-blame-bet/shared";
 import { generateGameCode } from "../utils/id";
+import { unbindFixtureForGame } from "../e2e/fixture-binding";
 
 const games = new Map<string, GameRoom>();
 
@@ -196,4 +197,5 @@ export function getLeaderboard(gameId: string) {
 
 export function deleteGame(gameId: string): void {
   games.delete(gameId);
+  unbindFixtureForGame(gameId);
 }

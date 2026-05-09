@@ -80,6 +80,7 @@ export function JoinPage() {
 
       <div className="w-full max-w-sm space-y-4">
         <input
+          data-testid="join-nickname-input"
           type="text"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
@@ -89,6 +90,7 @@ export function JoinPage() {
           onKeyDown={(e) => e.key === "Enter" && handleJoin()}
         />
         <button
+          data-testid="join-submit"
           onClick={handleJoin}
           disabled={!nickname.trim()}
           className="w-full rounded-lg bg-brand-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"

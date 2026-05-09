@@ -4,6 +4,7 @@ import {
   ROUND_PAUSE_MS,
   type ServerMessage,
   type PlayerScore,
+  type MockFixtureId,
 } from "@git-blame-bet/shared";
 import {
   getGame,
@@ -22,6 +23,8 @@ import {
 import { processRepo } from "../repo/processor";
 import { createProvider } from "../providers";
 import { scheduleGameCleanup } from "../utils/cleanup";
+import { getFixtureForGame } from "../e2e/fixture-binding";
+import { isFixtureRoutingEnabled } from "../e2e/fixture-gating";
 
 type BroadcastFn = (gameId: string, message: ServerMessage) => void;
 type SendFn = (
@@ -40,8 +43,13 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
   const feedbackTimers = new Map<string, Timer>();
   const roundEnded = new Set<string>();
 
-  function handleCreateGame(repoUrl: string, nickname: string, azureDevOpsToken?: string): string {
-    const room = createGame({ repoUrl, azureDevOpsToken }, nickname);
+  function handleCreateGame(
+    repoUrl: string,
+    nickname: string,
+    azureDevOpsToken?: string,
+    fixtureId?: MockFixtureId,
+  ): string {
+    const room = createGame({ repoUrl, azureDevOpsToken, fixtureId }, nickname);
     scheduleGameCleanup(room.id, () => deleteGame(room.id));
     return room.id;
   }
@@ -105,6 +113,10 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
     });
 
     try {
+      const boundFixture = isFixtureRoutingEnabled()
+        ? getFixtureForGame(gameId) ?? game.config.fixtureId
+        : undefined;
+
       const provider = createProvider(game.config.repoUrl, game.config.azureDevOpsToken);
       const { rounds } = await processRepo(
         game.config.repoUrl,
@@ -116,6 +128,7 @@ export function createEngine({ broadcast, sendToPlayer }: EngineDeps) {
           });
         },
         provider,
+        boundFixture,
       );
 
       setRounds(gameId, rounds);

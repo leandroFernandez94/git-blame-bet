@@ -7,6 +7,7 @@ import {
 import { getGame } from "./game/state";
 import { generateQRDataUrl } from "./utils/qr";
 import { join } from "node:path";
+import { parseFixtureId } from "./e2e/fixture-context";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const PUBLIC_URL = process.env.PUBLIC_URL ?? "http://localhost:5173";
@@ -34,8 +35,10 @@ function handleWebSocketUpgrade(
   req: Request,
   server: { upgrade: (req: Request, opts: { data: WSData }) => boolean },
 ): Response | undefined {
+  const fixtureId = parseFixtureId(req.headers.get("X-Mock-Fixture"));
+
   const upgraded = server.upgrade(req, {
-    data: { gameId: "", nickname: "", handshakeTimer: null },
+    data: { gameId: "", nickname: "", handshakeTimer: null, fixtureId },
   });
   if (upgraded) return undefined;
   return new Response("WebSocket upgrade failed", { status: 400 });

@@ -36,6 +36,7 @@ export type {
 export type { BlameInfo, Snippet } from "./types/snippet";
 
 export type {
+  MockFixtureId,
   ClientMessage,
   ServerMessage,
   LobbyCreateMessage,

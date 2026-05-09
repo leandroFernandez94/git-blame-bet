@@ -1,4 +1,5 @@
 import type { Contributor } from "./repo";
+import type { MockFixtureId } from "./messages";
 
 export enum GamePhase {
   Lobby = "lobby",
@@ -19,6 +20,7 @@ export type Player = {
 export type GameConfig = {
   repoUrl: string;
   azureDevOpsToken?: string;
+  fixtureId?: MockFixtureId;
   pathFilter?: string;
   fileTypes?: string[];
 };

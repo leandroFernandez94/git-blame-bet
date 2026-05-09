@@ -49,6 +49,34 @@ bun run --cwd frontend dev
 
 Open http://localhost:5173 in your browser.
 
+## E2E baseline (#20)
+
+Local prerequisites for the deterministic E2E baseline:
+
+- Arquitectura E2E detallada: [`docs/e2e-architecture.md`](docs/e2e-architecture.md)
+
+- `bun install` executed from repo root
+- Playwright Chromium installed once: `bunx playwright install chromium`
+- No CI-only env vars required
+
+Run commands from repository root:
+
+```bash
+# Full e2e suite
+bun run e2e
+
+# Target only issue #20 baseline scenario
+bun run e2e -- --grep "Two players complete full deterministic game and reach stable results"
+
+# Deterministic replay check (same scenario twice)
+bun run e2e -- --grep "Two players complete full deterministic game and reach stable results" --repeat-each=2
+```
+
+Notes:
+
+- E2E global setup starts frontend/backend automatically.
+- Fixture routing is test-only (`E2E_FIXTURE_ROUTING=1` in e2e global setup) and falls back to normal provider flow when not enabled.
+
 ## How to play
 
 1. Enter a public GitHub repo URL (e.g. `https://github.com/facebook/react`) and a nickname

@@ -1,5 +1,13 @@
 {
   "name": "git-blame-bet",
   "private": true,
-  "workspaces": ["frontend", "backend", "packages/*"]
+  "workspaces": ["frontend", "backend", "packages/*"],
+  "scripts": {
+    "e2e": "bddgen -c e2e/playwright.config.ts && playwright test -c e2e/playwright.config.ts",
+    "e2e:headed": "bddgen -c e2e/playwright.config.ts && playwright test -c e2e/playwright.config.ts --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "playwright-bdd": "^8.2.0"
+  }
 }

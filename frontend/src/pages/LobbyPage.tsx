@@ -58,11 +58,13 @@ export function LobbyPage() {
         </label>
         <div className="flex gap-2">
           <input
+            data-testid="lobby-invite-link"
             readOnly
             value={joinLink}
             className="flex-1 rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-gray-300"
           />
           <button
+            data-testid="lobby-copy-link"
             onClick={handleCopy}
             className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium hover:bg-brand-700 transition-colors"
           >
@@ -92,6 +94,7 @@ export function LobbyPage() {
 
       {state.isAdmin && (
         <button
+          data-testid="lobby-start-game"
           onClick={handleStart}
           disabled={state.players.length < 1}
           className="w-full rounded-lg bg-green-600 px-4 py-3 text-lg font-bold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"

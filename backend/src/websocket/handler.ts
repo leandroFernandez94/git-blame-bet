@@ -1,9 +1,15 @@
 import type { ServerWebSocket } from "bun";
-import type { ClientMessage, ServerMessage } from "@git-blame-bet/shared";
+import type {
+  ClientMessage,
+  ServerMessage,
+  MockFixtureId,
+} from "@git-blame-bet/shared";
 import { INITIAL_HANDSHAKE_MS } from "@git-blame-bet/shared";
 import { createEngine } from "../game/engine";
 import { getGame } from "../game/state";
 import { generateQRDataUrl } from "../utils/qr";
+import { bindFixtureToGame } from "../e2e/fixture-binding";
+import { resolveFixtureId } from "../e2e/fixture-context";
 
 const PUBLIC_URL = process.env.PUBLIC_URL ?? "http://localhost:5173";
 
@@ -11,6 +17,7 @@ export type WSData = {
   gameId: string;
   nickname: string;
   handshakeTimer: Timer | null;
+  fixtureId?: MockFixtureId;
 };
 
 const playerSockets = new Map<string, ServerWebSocket<WSData>>();
@@ -89,13 +96,28 @@ export async function handleMessage(
 
   switch (msg.type) {
     case "lobby:create": {
-      const { repoUrl, nickname, azureDevOpsToken } = msg.payload;
+      const { repoUrl, nickname, azureDevOpsToken, fixtureId } = msg.payload;
       try {
-        const gameId = engine.handleCreateGame(repoUrl, nickname, azureDevOpsToken);
+        const resolvedFixtureId = resolveFixtureId({
+          payloadFixtureId: fixtureId,
+          handshakeFixtureId: ws.data.fixtureId,
+        });
+
+        const gameId = engine.handleCreateGame(
+          repoUrl,
+          nickname,
+          azureDevOpsToken,
+          resolvedFixtureId,
+        );
         ws.data.gameId = gameId;
         ws.data.nickname = nickname;
+        ws.data.fixtureId = resolvedFixtureId;
         if (ws.data.handshakeTimer) clearTimeout(ws.data.handshakeTimer);
         playerSockets.set(socketKey(gameId, nickname), ws);
+
+        if (resolvedFixtureId) {
+          bindFixtureToGame(gameId, resolvedFixtureId);
+        }
 
         const gameUrl = `${PUBLIC_URL}/play/${gameId}`;
         const qrDataUrl = await generateQRDataUrl(gameUrl);
